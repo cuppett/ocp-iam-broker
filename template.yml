@@ -56,6 +56,15 @@ Resources:
             Service: [lambda.amazonaws.com]
           Action: sts:AssumeRole
       Path: /
+      Policies:
+        - PolicyName: AssumeRole
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+                - Effect: Allow
+                  Action:
+                    - 'sts:AssumeRole'
+                  Resource: '*'
       ManagedPolicyArns:
         - !Sub 'arn:${AWS::Partition}:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole'
-      PermissionsBoundary: !Sub 'arn:${AWS::Partition}:iam::${AWS::AccountId}:policy/CodeStar_${ProjectId}_PermissionsBoundary'
+        - 'arn:aws:iam::aws:policy/AmazonDynamoDBReadOnlyAccess'
