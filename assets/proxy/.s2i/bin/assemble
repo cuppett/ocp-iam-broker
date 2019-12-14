@@ -1,0 +1,6 @@
+#!/bin/bash -e
+
+echo "---> Replacing proxy location with ${OCP_BROKER_LOC}"
+envsubst '${OCP_BROKER_LOC}' < /tmp/src/nginx.conf.TEMPLATE > /tmp/src/nginx.conf
+
+source ${STI_SCRIPTS_PATH}/assemble
