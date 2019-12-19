@@ -1,6 +1,6 @@
 Local Proxy Development
 =======================
-Building & Running the container locally will allow you to validate the broker. It
+Building & running the proxy container locally will allow you to validate the broker. It
 still requires the broker configuration/deployment and connectivity between the
 local workstation and the deployed broker endpoint.
 
@@ -11,9 +11,9 @@ Local container builds should be achievable from either Docker or podman/buildah
 
 <pre>
 [proxy]$ buildah build-using-dockerfile ./
-STEP 1: FROM nginx:1.16
+STEP 1: FROM registry.access.redhat.com/ubi8/ubi:latest
 STEP 2: LABEL maintainer=""
-STEP 3: EXPOSE 8080
+STEP 3: EXPOSE 53080
 STEP 4: COPY nginx.conf.TEMPLATE /etc/nginx/nginx.conf.TEMPLATE
 STEP 5: COPY docker-entrypoint.sh ./docker-entrypoint.sh
 STEP 6: ENTRYPOINT ["./docker-entrypoint.sh"]
@@ -40,7 +40,7 @@ be set.
 <pre>
 [proxy]$ setsebool -P httpd_can_network_connect 1
 [proxy]$ podman run -dt 
-    -p 8080:8080/tcp 
+    -p 53080:53080/tcp 
     -e OCP_BROKER_LOC=https://MYAPI.execute-api.us-east-2.amazonaws.com/Prod 
     79c445811ff
 </pre>
@@ -54,7 +54,7 @@ to be delegated by the AWS_CONTAINER_AUTHORIZATION_TOKEN above, locally, the
 credentials will be able to be fetched and used by the AWS CLI/SDK.
 
 <pre>
-[proxy]$ export AWS_CONTAINER_CREDENTIALS_FULL_URI=http://127.0.0.1:8080/
+[proxy]$ export AWS_CONTAINER_CREDENTIALS_FULL_URI=http://127.0.0.1:53080/
 [proxy]$ export AWS_CONTAINER_AUTHORIZATION_TOKEN=XYZABC
 [proxy]$ aws s3 ls
 2019-04-17 07:14:48 cf-templates-7gxyzsc6jj-us-east-1
