@@ -3,7 +3,7 @@ LABEL maintainer="Stephen Cuppett <scuppett@redhat.com>"
 
 EXPOSE 53080
 
-RUN dnf -y install nginx
+RUN dnf -y install nginx gettext; dnf -y clean all
 
 COPY nginx.conf.TEMPLATE /etc/nginx/nginx.conf.TEMPLATE
 COPY docker-entrypoint.sh ./docker-entrypoint.sh
