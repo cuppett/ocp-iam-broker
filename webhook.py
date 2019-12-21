@@ -14,12 +14,11 @@ def handler(event, context):
 
     logger.debug('Namespace: ' + namespace + ' Operation: ' + operation)
 
-    if operation == 'CREATE':
-        patchset = 'W3sib3AiOiAiYWRkIiwgInBhdGgiOiAiL3NwZWMvY29udGFpbmVycy8wL2VudiIsICJ2YWx1ZSI6IFt7Im5hbWUiOiAiQV' \
-                   'dTX0NPTlRBSU5FUl9DUkVERU5USUFMU19GVUxMX1VSSSIsCiAgICAgICAgICAgICAgICAidmFsdWUiOiAiaHR0cDovLzEy' \
-                   'Ny4wLjAuMTo1MzA4MC8iCiAgICAgICAgICAgIH0sCiAgICAgICAgICAgIHsKICAgICAgICAgICAgICAgICJuYW1lIjogIk' \
-                   'FXU19DT05UQUlORVJfQVVUSE9SSVpBVElPTl9UT0tFTiIsCiAgICAgICAgICAgICAgICAidmFsdWUiOiAiOTY5MkVENEI3O' \
-                   'TJCNDkwOThCMDY3MEQxMDc5NDhBMUY4RDZBODdERiIKICAgICAgICAgICAgfQogICAgICAgIF0KICAgIH0KXQ=='
+    if operation == 'CREATE' and namespace == 'app1':
+        patchset = 'W3sgIm9wIjogImFkZCIsICJwYXRoIjogIi9zcGVjL2NvbnRhaW5lcnMvMC9lbnYiLCAidmFsdWUiOiBbeyAibmFtZSI6ICJ' \
+                   'BV1NfQ09OVEFJTkVSX0NSRURFTlRJQUxTX0ZVTExfVVJJIiwgInZhbHVlIjogImh0dHA6Ly8xMjcuMC4wLjE6NTMwODAvIi' \
+                   'B9LHsgIm5hbWUiOiAiQVdTX0NPTlRBSU5FUl9BVVRIT1JJWkFUSU9OX1RPS0VOIiwgInZhbHVlIjogIjk2OTJFRDRCNzkyQ' \
+                   'jQ5MDk4QjA2NzBEMTA3OTQ4QTFGOEQ2QTg3REYiIH1dXQ=='
     else:
         patchset = 'W10K'
 
