@@ -15,14 +15,16 @@ def handler(event, context):
     logger.debug('Namespace: ' + namespace + ' Operation: ' + operation)
 
     if operation == 'CREATE' and namespace == 'app1':
-        patchset = 'WwogICAgewogICAgICAgICJvcCI6ICJhZGQiLAogICAgICAgICJwYXRoIjogIi9zcGVjL2NvbnRhaW5lcnMvMC9lbnYiLAogI' \
-                   'CAgICAgICJ2YWx1ZSI6IFsKICAgICAgICAgICAgewogICAgICAgICAgICAgICAgIm5hbWUiOiAiQVdTX0NPTlRBSU5FUl9DUk' \
-                   'VERU5USUFMU19GVUxMX1VSSSIsCiAgICAgICAgICAgICAgICAidmFsdWUiOiAiaHR0cDovLzEyNy4wLjAuMTo1MzA4MC8iCiA' \
-                   'gICAgICAgICAgIH0sCiAgICAgICAgICAgIHsKICAgICAgICAgICAgICAgICJuYW1lIjogIkFXU19DT05UQUlORVJfQVVUSE9S' \
-                   'SVpBVElPTl9UT0tFTiIsCiAgICAgICAgICAgICAgICAidmFsdWUiOiAiOTY5MkVENEI3OTJCNDkwOThCMDY3MEQxMDc5NDhBM' \
-                   'UY4RDZBODdERiIKICAgICAgICAgICAgfQogICAgICAgIF0KICAgIH0KXQ=='
+        patchset = 'WwogICAgewogICAgICAgICJvcCI6ICJhZGQiLAogICAgICAgICJwYXRoIjogIi9zcGVjL2NvbnRhaW5lcnMvMC9lbnYiLAog' \
+                   'ICAgICAgICJ2YWx1ZSI6IFsKICAgICAgICAgICAgewogICAgICAgICAgICAgICAgIm5hbWUiOiAiQVdTX0NPTlRBSU5FUl9D' \
+                   'UkVERU5USUFMU19GVUxMX1VSSSIsCiAgICAgICAgICAgICAgICAidmFsdWUiOiAiaHR0cDovLzEyNy4wLjAuMTo1MzA4MC8i' \
+                   'CiAgICAgICAgICAgIH0sCiAgICAgICAgICAgIHsKICAgICAgICAgICAgICAgICJuYW1lIjogIkFXU19DT05UQUlORVJfQVVUS' \
+                   'E9SSVpBVElPTl9UT0tFTiIsCiAgICAgICAgICAgICAgICAidmFsdWVGcm9tIjogewogICAgICAgICAgICAgICAgICAgICJzZW' \
+                   'NyZXRLZXlSZWYiOiB7CiAgICAgICAgICAgICAgICAgICAgICAgICJuYW1lIjogImJyb2tlci1hdXRob3JpemF0aW9uLXhremt' \
+                   'kZSIsCiAgICAgICAgICAgICAgICAgICAgICAgICJrZXkiOiAiQVdTX0NPTlRBSU5FUl9BVVRIT1JJWkFUSU9OX1RPS0VOIgog' \
+                   'ICAgICAgICAgICAgICAgICAgIH0KICAgICAgICAgICAgICAgIH0KICAgICAgICAgICAgfQogICAgICAgIF0KICAgIH0KXQ'
     else:
-        patchset = 'W10K'
+        patchset = 'W10='
 
     to_return = {
         'headers': {'Content-Type': 'application/json'},
