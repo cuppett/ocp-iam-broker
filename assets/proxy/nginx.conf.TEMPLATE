@@ -25,6 +25,8 @@ http {
     include             /etc/nginx/mime.types;
     default_type        application/octet-stream;
 
+    proxy_cache_path  /tmp  levels=1  keys_zone=STATIC:10m inactive=24h  max_size=10m;
+
     server {
         listen       53080 default_server;
         server_name  _;
@@ -35,6 +37,10 @@ http {
             proxy_ssl_server_name on;
             proxy_ssl_protocols TLSv1.2;
             proxy_buffering off;
+            proxy_cache            STATIC;
+            proxy_cache_valid      200  1d;
+            proxy_cache_use_stale  error timeout invalid_header updating
+                                   http_500 http_502 http_503 http_504;
         }
     }
 }

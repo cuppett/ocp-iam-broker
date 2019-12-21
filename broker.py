@@ -13,7 +13,6 @@ if os.getenv('AWS_REGION'):
 
 
 def get_arn(lookup_token):
-
     if lookup_token is not None:
         client = boto3.client('dynamodb')
         row = client.get_item(TableName=os.getenv('ROLE_MAP_TABLENAME', 'role_perms'),
@@ -27,7 +26,6 @@ def get_arn(lookup_token):
 
 
 def get_credentials(auth_token):
-
     arn = None
     if auth_token is not None:
         arn = get_arn(auth_token)
@@ -38,20 +36,22 @@ def get_credentials(auth_token):
                                              DurationSeconds=os.getenv('DEFAULT_DURATION', 900),
                                              RoleSessionName=auth_token)
 
+        # Calculating 300 seconds (5 minutes) short of the expiration for allowing caching.
+        delta_in_seconds = int(credentials['Credentials']['Expiration'].strftime("%s")) - \
+                int(datetime.datetime.utcnow().strftime("%s")) - 300
+
         ecs_payload = {
             'AccessKeyId': credentials['Credentials']['AccessKeyId'],
             'SecretAccessKey': credentials['Credentials']['SecretAccessKey'],
             'Token': credentials['Credentials']['SessionToken'],
             'Expiration': credentials['Credentials']['Expiration'].isoformat()
         }
-
-        return ecs_payload
+        return ecs_payload, delta_in_seconds
     else:
-        return None
+        return None, None
 
 
 def handler(event, context):
-
     to_return = {
         'headers': {'Content-Type': 'application/json'}
     }
@@ -60,7 +60,11 @@ def handler(event, context):
         if event and 'Authorization' in event['headers']:
             auth_token = event['headers']['Authorization']
 
-            credentials = get_credentials(auth_token)
+            credentials, max_age = get_credentials(auth_token)
+            if max_age is not None and max_age > 0:
+                to_return['headers']['Cache-control'] = ('max-age=' + str(max_age))
+            else:
+                to_return['headers']['Cache-control'] = 'no-cache'
 
             if credentials is not None:
                 to_return['statusCode'] = 200
