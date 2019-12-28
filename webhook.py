@@ -4,8 +4,7 @@ import logging
 
 def handler(event, context):
 
-    logger = logging.getLogger()
-    logger.setLevel(logging.DEBUG)
+    logger = logging.getLogger(__name__)
 
     body = json.loads(event['body'])
 

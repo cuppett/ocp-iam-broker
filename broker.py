@@ -6,16 +6,11 @@ import os
 
 from botocore.exceptions import ClientError
 
-logger = logging.getLogger()
-
-if os.getenv('AWS_REGION'):
-    boto3.setup_default_session(region_name=os.getenv('AWS_REGION'))
-
 
 def get_arn(lookup_token):
     if lookup_token is not None:
         client = boto3.client('dynamodb')
-        row = client.get_item(TableName=os.getenv('ROLE_MAP_TABLENAME', 'role_perms'),
+        row = client.get_item(TableName=os.getenv('AUTH_TABLE', 'role_perms'),
                               Key={'auth_token': {'S': lookup_token}})
         if row is not None:
             return row['Item']['role_arn']['S']
@@ -52,6 +47,9 @@ def get_credentials(auth_token):
 
 
 def handler(event, context):
+
+    logger = logging.getLogger(__name__)
+
     to_return = {
         'headers': {'Content-Type': 'application/json'}
     }
