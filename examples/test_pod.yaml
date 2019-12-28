@@ -1,0 +1,27 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: s3-listing
+  labels:
+    app: s3-listing
+  namespace: default
+spec:
+  containers:
+    - name: ocp-broker-proxy
+      image: image-registry.openshift-image-registry.svc:5000/ocp-iam-broker/ocp-broker-proxy
+      resources:
+        requests:
+          memory: "15Mi"
+          cpu: 1m
+        limits:
+          memory: "32Mi"
+          cpu: 1m
+    - name: awscli
+      image: quay.io/cuppett/aws-cli
+      env:
+        - name: AWS_CONTAINER_CREDENTIALS_FULL_URI
+          value: "http://127.0.0.1:53080/"
+        - name: AWS_CONTAINER_AUTHORIZATION_TOKEN
+          value: "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
+      command: ["aws"]
+      args: ["s3", "ls"]
