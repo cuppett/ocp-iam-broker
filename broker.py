@@ -7,7 +7,7 @@ import os
 from botocore.exceptions import ClientError
 
 
-def get_arn(lookup_token):
+def _get_arn(lookup_token):
     if lookup_token is not None:
         client = boto3.client('dynamodb')
         row = client.get_item(TableName=os.getenv('AUTH_TABLE', 'role_perms'),
@@ -20,10 +20,10 @@ def get_arn(lookup_token):
         return None
 
 
-def get_credentials(auth_token):
+def _get_credentials(auth_token):
     arn = None
     if auth_token is not None:
-        arn = get_arn(auth_token)
+        arn = _get_arn(auth_token)
 
     if arn is not None:
         sts_client = boto3.client('sts')
@@ -58,7 +58,7 @@ def handler(event, context):
         if event and 'Authorization' in event['headers']:
             auth_token = event['headers']['Authorization']
 
-            credentials, max_age = get_credentials(auth_token)
+            credentials, max_age = _get_credentials(auth_token)
             if max_age is not None and max_age > 0:
                 to_return['headers']['Cache-control'] = ('max-age=' + str(max_age))
             else:
