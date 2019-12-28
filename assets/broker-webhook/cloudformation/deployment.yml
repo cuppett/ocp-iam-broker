@@ -1,0 +1,217 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: OpenShift IAM Pod Identity Broker & Webhook Deployment
+Transform:
+  - 'AWS::Serverless-2016-10-31'
+Parameters:
+  S3CodeBucket:
+    Type: String
+    Description: S3 bucket containing broker lambda function code bundle
+  S3CodeKey:
+    Type: String
+    Description: S3 key (file) containing broker lambda function code
+  KubeConfig:
+    Type: 'AWS::SSM::Parameter::Name'
+    Description: SSM parameter name containing the exported webhook service account kubeconfig
+  ProxyPort:
+    Type: Number
+    Default: 53080
+    MinValue: 1
+    MaxValue: 65535
+    Description: The port to set the pod AWS metadata proxy to (should match your image configuration on OCP)
+  ProxyImage:
+    Type: String
+    Description: The proxy image reference to use when adding the sidecar to pods.
+  PrivateCluster:
+    Type: String
+    Description: Identify if the cluster API server is private or not
+    AllowedValues:
+      - 'Yes'
+      - 'No'
+  SubnetIds:
+     Type: List<AWS::EC2::Subnet::Id>
+     Description: Only used when using private API server (to talk to cluster). Select public subnets.
+  VpcId:
+     Type: AWS::EC2::VPC::Id
+     Description: Only used when using private API server (to talk to cluster). Select the cluster VPC.
+Metadata:
+  AWS::CloudFormation::Interface:
+    ParameterGroups:
+    - Label:
+        default: "OCP Cluster Configuration"
+      Parameters:
+      - KubeConfig
+      - PrivateCluster
+      - VpcId
+      - SubnetIds
+    - Label:
+        default: "Sidecar Configuration"
+      Parameters:
+      - ProxyImage
+      - ProxyPort
+    - Label:
+        default: "Lambda Function Location"
+      Parameters:
+      - S3CodeBucket
+      - S3CodeKey
+    ParameterLabels:
+      KubeConfig:
+        default: ".kubeconfig SSM Parameter"
+      PrivateCluster:
+        default: "Private Cluster"
+      S3CodeBucket:
+        default: "S3 Bucket"
+      S3CodeKey:
+        default: "S3 Key"
+      SubnetIds:
+        default: "Public Subnet IDs"
+      ProxyImage:
+        default: "Container Image"
+      ProxyPort:
+        default: "Proxy Port"
+      VpcId:
+        default: "VPC"
+
+Conditions:
+  PrivateCluster: !Equals ['Yes', !Ref PrivateCluster]
+
+Resources:
+  LambdaSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Condition: PrivateCluster
+    Properties:
+      GroupDescription: Broker Lambda Security Group
+      VpcId: !Ref VpcId
+  Allowances:
+    Type: 'AWS::DynamoDB::Table'
+    Properties:
+      BillingMode: PAY_PER_REQUEST
+      KeySchema:
+        - KeyType: HASH
+          AttributeName: namespace
+        - KeyType: RANGE
+          AttributeName: service_account
+      AttributeDefinitions:
+        - AttributeName: namespace
+          AttributeType: S
+        - AttributeName: service_account
+          AttributeType: S
+      SSESpecification:
+        SSEEnabled: true
+  Authorizations:
+    Type: 'AWS::DynamoDB::Table'
+    Properties:
+      BillingMode: PAY_PER_REQUEST
+      KeySchema:
+        - KeyType: HASH
+          AttributeName: auth_token
+      GlobalSecondaryIndexes:
+        - IndexName: pod-idx
+          KeySchema:
+            - KeyType: HASH
+              AttributeName: namespace
+            - KeyType: RANGE
+              AttributeName: pod_name
+          Projection:
+            ProjectionType: ALL
+      AttributeDefinitions:
+        - AttributeName: auth_token
+          AttributeType: S
+        - AttributeName: namespace
+          AttributeType: S
+        - AttributeName: pod_name
+          AttributeType: S
+      SSESpecification:
+        SSEEnabled: true
+  OcpBrokerWebhook:
+    Type: 'AWS::Serverless::Function'
+    Properties:
+      Handler: index.handler
+      Runtime: python3.7
+      Environment:
+        Variables:
+          KUBECONFIG: !Ref KubeConfig
+          AUTH_TABLE: !Ref Authorizations
+          MAP_TABLE: !Ref Allowances
+          PROXY_PORT: !Ref ProxyPort
+          PROXY_IMAGE: !Ref ProxyImage
+      Role:
+        'Fn::GetAtt':
+          - LambdaExecutionRole
+          - Arn
+      Events:
+        GetEvent:
+          Type: Api
+          Properties:
+            Path: /
+            Method: get
+        PostEvent:
+          Type: Api
+          Properties:
+            Path: /
+            Method: post
+      CodeUri:
+        Bucket: !Ref S3CodeBucket
+        Key: !Ref S3CodeKey
+      VpcConfig: !If
+        - PrivateCluster
+        - SecurityGroupIds:
+            - !Ref LambdaSecurityGroup
+          SubnetIds: !Ref SubnetIds
+        - !Ref "AWS::NoValue"
+  LambdaExecutionRole:
+    Description: Creating service role in IAM for AWS Lambda
+    Type: 'AWS::IAM::Role'
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - lambda.amazonaws.com
+            Action: 'sts:AssumeRole'
+      Path: /
+      Policies:
+        - PolicyName: CreateEni
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                  - 'ec2:CreateNetworkInterface'
+                  - 'ec2:DescribeNetworkInterfaces'
+                  - 'ec2:DeleteNetworkInterface'
+                  - 'ec2:AttachNetworkInterface'
+                Resource: '*'
+        - PolicyName: AssumeRole
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                  - 'sts:AssumeRole'
+                Resource: '*'
+        - PolicyName: ReadKubeConfig
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                  - 'ssm:GetParameter'
+                Resource: !Sub 'arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${KubeConfig}'
+        - PolicyName: UseDynamoDbTables
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                  - 'dynamodb:PutItem'
+                  - 'dynamodb:GetItem'
+                  - 'dynamodb:DeleteItem'
+                  - 'dynamodb:DescribeTable'
+                  - 'dynamodb:Query'
+                  - 'dynamodb:UpdateTable'
+                Resource:
+                  - !GetAtt Allowances.Arn
+                  - !GetAtt Authorizations.Arn
+      ManagedPolicyArns:
+        - !Sub arn:${AWS::Partition}:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
