@@ -29,7 +29,7 @@ Parameters:
       - 'No'
   SubnetIds:
      Type: List<AWS::EC2::Subnet::Id>
-     Description: Only used when using private API server (to talk to cluster). Select public subnets.
+     Description: Only used when using private API server (to talk to cluster). Select private subnets.
   VpcId:
      Type: AWS::EC2::VPC::Id
      Description: Only used when using private API server (to talk to cluster). Select the cluster VPC.
@@ -63,7 +63,7 @@ Metadata:
       S3CodeKey:
         default: "S3 Key"
       SubnetIds:
-        default: "Public Subnet IDs"
+        default: "Private Subnet IDs"
       ProxyImage:
         default: "Container Image"
       ProxyPort:
