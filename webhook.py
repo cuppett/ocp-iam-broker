@@ -24,7 +24,7 @@ def _get_kubeconfig() -> None:
     config.load_kube_config(config_file=str(filename))
 
 
-def _identify_target_arn(namespace: string, serviceaccount: string):
+def _identify_target_arn(namespace: string, serviceaccount: string) -> string:
     """Will lookup the target ARN in Kubernetes via an annotation on the ServiceAccount.
     If none is found, or there is an error, will return None."""
     logger = logging.getLogger(__name__)
@@ -48,7 +48,7 @@ def _identify_target_arn(namespace: string, serviceaccount: string):
         return None
 
 
-def _delete_secret(namespace: string, name: string):
+def _delete_secret(namespace: string, name: string) -> None:
     logger = logging.getLogger(__name__)
     try:
         v1 = client.CoreV1Api()
@@ -181,7 +181,7 @@ def _update_pod_spec(original: [], secret_name: string) -> []:
             }
         }
     }
-    new['spec']['containers'].insert(0, proxy_container)
+    new['spec']['containers'].append(proxy_container)
     return new
 
 

@@ -74,11 +74,12 @@ class TestWebhookCase(unittest.TestCase):
         jsonpatch.apply_patch(original, patch, True)
 
         self.assertEqual(len(original['spec']['containers']), 3)
-        self.assertEqual(original['spec']['containers'][0]['name'], 'ocp-broker-proxy')
-        self.assertEqual(original['spec']['containers'][2]['name'], 'awscli2')
-        self.assertNotIn('env', original['spec']['containers'][0])
+        self.assertEqual(original['spec']['containers'][2]['name'], 'ocp-broker-proxy')
+        self.assertEqual(original['spec']['containers'][1]['name'], 'awscli2')
+        self.assertNotIn('env', original['spec']['containers'][2])
+        self.assertIsNotNone(original['spec']['containers'][0]['env'])
         self.assertIsNotNone(original['spec']['containers'][1]['env'])
-        self.assertIsNotNone(original['spec']['containers'][2]['env'])
+        print(patch.to_string())
 
 
 if __name__ == '__main__':
