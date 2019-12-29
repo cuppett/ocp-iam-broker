@@ -17,13 +17,19 @@ _EMPTY_PATCHSET = 'W10='
 _logger = logging.getLogger()
 _logger.setLevel(logging.DEBUG if os.getenv('APP_DEBUG', '') == 'true' else logging.INFO)
 
-if os.getenv('AWS_REGION'):
-    boto3.setup_default_session(region_name=os.getenv('AWS_REGION'))
+kube_init = False
 
-_ssm_client = boto3.client('ssm')
-_kubeconfig = _ssm_client.get_parameter(Name=os.getenv('KUBECONFIG', 'WEBHOOK_KUBECONFIG'), WithDecryption=True)
-__filename = create_temp_file(_kubeconfig['Parameter']['Value'])
-config.load_kube_config(config_file=str(__filename))
+
+def _get_kube_config() -> None:
+    """Will populate this Lambda with the value of the SSM parameter for kubeconfig"""
+    global kube_init
+    if not kube_init:
+        ssm_client = boto3.client('ssm')
+        kubeconfig = ssm_client.get_parameter(Name=os.getenv('KUBECONFIG', 'WEBHOOK_KUBECONFIG'), WithDecryption=True)
+        filename = create_temp_file(kubeconfig['Parameter']['Value'])
+        config.load_kube_config(config_file=str(filename))
+        os.remove(filename)
+    kube_init = True
 
 
 def _identify_target_arn(namespace: string, service_account: string) -> string:
@@ -220,6 +226,7 @@ def handler(event, context):
 
     if body['request']['kind']['kind'] == 'Pod':
         try:
+            _get_kube_config()
             namespace = body['request']['namespace']
             operation = body['request']['operation']
 
