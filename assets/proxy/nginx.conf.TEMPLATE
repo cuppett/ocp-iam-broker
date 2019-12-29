@@ -6,7 +6,7 @@ pid /run/nginx.pid;
 include /usr/share/nginx/modules/*.conf;
 
 events {
-    worker_connections 5;
+    worker_connections 20;
 }
 
 http {
