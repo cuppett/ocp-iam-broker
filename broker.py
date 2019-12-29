@@ -6,7 +6,7 @@ import os
 
 from botocore.exceptions import ClientError
 
-_logger = logging.getLogger(__name__)
+_logger = logging.getLogger()
 _logger.setLevel(logging.DEBUG if os.getenv('APP_DEBUG', '') == 'true' else logging.INFO)
 
 

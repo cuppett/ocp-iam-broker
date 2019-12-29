@@ -14,7 +14,7 @@ from kubernetes.config.kube_config import _create_temp_file_with_content as crea
 
 _EMPTY_PATCHSET = 'W10='
 
-_logger = logging.getLogger(__name__)
+_logger = logging.getLogger()
 _logger.setLevel(logging.DEBUG if os.getenv('APP_DEBUG', '') == 'true' else logging.INFO)
 
 
