@@ -188,7 +188,7 @@ def _update_pod_spec(original: [], secret_name: string) -> []:
 
 def _generate_patchset(request_body: []) -> string:
     namespace = request_body['namespace']
-    service_account = request_body['object']['spec']['serviceAccount']
+    service_account = request_body['object']['spec']['serviceAccountName']
     auth_secret = _get_auth_secret(namespace, service_account)
 
     # If we have an identified auth_token
