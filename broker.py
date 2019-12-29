@@ -6,6 +6,9 @@ import os
 
 from botocore.exceptions import ClientError
 
+_logger = logging.getLogger(__name__)
+_logger.setLevel(logging.DEBUG if os.getenv('APP_DEBUG', '') == 'true' else logging.INFO)
+
 
 def _get_arn(lookup_token):
     if lookup_token is not None:
@@ -48,8 +51,6 @@ def _get_credentials(auth_token):
 
 def handler(event, context):
 
-    logger = logging.getLogger(__name__)
-
     to_return = {
         'headers': {'Content-Type': 'application/json'}
     }
@@ -80,9 +81,9 @@ def handler(event, context):
 
     except ClientError as e:
         if e.response['Error']['Code'] == 'ResourceNotFoundException':
-            logger.error("Table does not exist: %s" % e)
+            _logger.error("Table does not exist: %s" % e)
         else:
-            logger.error("Unexpected error: %s" % e)
+            _logger.error("Unexpected error: %s" % e)
         data = {
             'output': 'Server Error',
             'timestamp': datetime.datetime.utcnow().isoformat()

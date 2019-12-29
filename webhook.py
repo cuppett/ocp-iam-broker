@@ -14,6 +14,9 @@ from kubernetes.config.kube_config import _create_temp_file_with_content as crea
 
 _EMPTY_PATCHSET = 'W10='
 
+_logger = logging.getLogger(__name__)
+_logger.setLevel(logging.DEBUG if os.getenv('APP_DEBUG', '') == 'true' else logging.INFO)
+
 
 def _get_kubeconfig() -> None:
     """Retrieves the required kubeconfig from SSM Parameter Store. This function must have the ability to decrypt
@@ -27,7 +30,6 @@ def _get_kubeconfig() -> None:
 def _identify_target_arn(namespace: string, serviceaccount: string) -> string:
     """Will lookup the target ARN in Kubernetes via an annotation on the ServiceAccount.
     If none is found, or there is an error, will return None."""
-    logger = logging.getLogger(__name__)
 
     # Identifying the annotation to find. Using the default to match the EKS webhook
     arn_annotation = os.getenv('ARN_ANNOTATION', 'eks.amazonaws.com/role-arn')
@@ -37,29 +39,27 @@ def _identify_target_arn(namespace: string, serviceaccount: string) -> string:
         v1 = client.CoreV1Api()
         resp = v1.read_namespaced_service_account(namespace, serviceaccount)
         if resp.metadata.annotations is not None and arn_annotation in resp.metadata.annotations:
-            logger.debug('Annotation found: ' + resp.metadata.annotations[arn_annotation])
+            _logger.debug('Annotation found: ' + resp.metadata.annotations[arn_annotation])
             return resp.metadata.annotations[arn_annotation]
         else:
-            logger.debug('No annotation %s found for namespace %s and serviceaccount %s',
-                         arn_annotation, namespace, serviceaccount)
+            _logger.debug('No annotation %s found for namespace %s and serviceaccount %s',
+                          arn_annotation, namespace, serviceaccount)
             return None
     except ApiException as e:
-        logger.error("Unknown error trying to fetch serviceaccount: %s" % e)
+        _logger.error("Unknown error trying to fetch serviceaccount: %s" % e)
         return None
 
 
 def _delete_secret(namespace: string, name: string) -> None:
-    logger = logging.getLogger(__name__)
     try:
         v1 = client.CoreV1Api()
         v1.delete_namespaced_secret(name, namespace)
-        logger.info("Secret %s removed in namespace %s", name, namespace)
+        _logger.info("Secret %s removed in namespace %s", name, namespace)
     except ApiException as e:
-        logger.error("Unknown error removing secret: %s" % e)
+        _logger.error("Unknown error removing secret: %s" % e)
 
 
 def _create_secret(namespace: string, auth_token: string) -> string:
-    logger = logging.getLogger(__name__)
     try:
         v1 = client.CoreV1Api()
         secret_name = 'broker-authorization-' + \
@@ -77,10 +77,10 @@ def _create_secret(namespace: string, auth_token: string) -> string:
             }
         }
         resp = v1.create_namespaced_secret(namespace, secret)
-        logger.debug('Result of the call: %s', resp)
+        _logger.debug('Result of the call: %s', resp)
         return secret_name
     except ApiException as e:
-        logger.error("Unknown error generating secret: %s" % e)
+        _logger.error("Unknown error generating secret: %s" % e)
         return None
 
 
@@ -119,13 +119,14 @@ def _insert_auth_row(auth_token: string, role_arn: string, secret_name: string, 
 
 
 def _get_auth_secret(namespace: string, service_account: string) -> string:
-    logger = logging.getLogger(__name__)
 
     # Identify if there is a target ARN which is valid
     arn_list = _get_allowed_arns(namespace, service_account)
     target_arn = None
     if arn_list is not None and len(arn_list) > 0:
+        _logger.debug('List of ARNs: %s', arn_list)
         target_arn = _identify_target_arn(namespace, service_account)
+        _logger.debug('Target ARN: %s', target_arn)
 
     # Setting up Kubernetes and DynamoDB with the needed Secret & row
     if target_arn is not None and target_arn in arn_list:
@@ -138,7 +139,7 @@ def _get_auth_secret(namespace: string, service_account: string) -> string:
                 _insert_auth_row(auth_token, target_arn, secret_name, namespace, service_account)
                 return secret_name
             except Exception as e:
-                logger.error("Unknown error storing dynamoDB row: %s" % e)
+                _logger.error("Unknown error storing dynamoDB row: %s" % e)
                 # Unwind and remove the Kubernetes secret
                 _delete_secret(namespace, secret_name)
 
@@ -187,7 +188,7 @@ def _update_pod_spec(original: [], secret_name: string) -> []:
 
 def _generate_patchset(request_body: []) -> string:
     namespace = request_body['namespace']
-    service_account = request_body['object']['spec']['serviceAccountName']
+    service_account = request_body['object']['spec']['serviceAccount']
     auth_secret = _get_auth_secret(namespace, service_account)
 
     # If we have an identified auth_token
@@ -208,9 +209,6 @@ def _generate_patchset(request_body: []) -> string:
 
 
 def handler(event, context):
-
-    logger = logging.getLogger(__name__)
-
     body = json.loads(event['body'])
     patchset = _EMPTY_PATCHSET
 
@@ -219,7 +217,7 @@ def handler(event, context):
         namespace = body['request']['namespace']
         operation = body['request']['operation']
 
-        logger.debug('Namespace: ' + namespace + ' Operation: ' + operation)
+        _logger.debug('Namespace: ' + namespace + ' Operation: ' + operation)
 
         if operation == 'CREATE':
             patchset = _generate_patchset(body['request'])
@@ -242,6 +240,6 @@ def handler(event, context):
         })
     }
 
-    logger.debug(to_return)
+    _logger.debug(to_return)
 
     return to_return
