@@ -89,7 +89,7 @@ Resources:
         - KeyType: HASH
           AttributeName: namespace
         - KeyType: RANGE
-          AttributeName: service_account
+          AttributeName: serviceaccount
       AttributeDefinitions:
         - AttributeName: namespace
           AttributeType: S

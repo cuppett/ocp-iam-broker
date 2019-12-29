@@ -65,6 +65,14 @@ Resources:
                   Action:
                     - 'sts:AssumeRole'
                   Resource: '*'
+        - PolicyName: ReadKubeConfig
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                  - 'ssm:GetParameter'
+                Resource: !Sub 'arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter/WEBHOOK_KUBECONFIG'
       ManagedPolicyArns:
         - !Sub 'arn:${AWS::Partition}:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole'
         - 'arn:aws:iam::aws:policy/AmazonDynamoDBReadOnlyAccess'
