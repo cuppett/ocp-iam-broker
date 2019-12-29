@@ -89,7 +89,7 @@ Resources:
         - KeyType: HASH
           AttributeName: namespace
         - KeyType: RANGE
-          AttributeName: serviceaccount
+          AttributeName: service_account
       AttributeDefinitions:
         - AttributeName: namespace
           AttributeType: S
@@ -104,21 +104,8 @@ Resources:
       KeySchema:
         - KeyType: HASH
           AttributeName: auth_token
-      GlobalSecondaryIndexes:
-        - IndexName: pod-idx
-          KeySchema:
-            - KeyType: HASH
-              AttributeName: namespace
-            - KeyType: RANGE
-              AttributeName: pod_name
-          Projection:
-            ProjectionType: ALL
       AttributeDefinitions:
         - AttributeName: auth_token
-          AttributeType: S
-        - AttributeName: namespace
-          AttributeType: S
-        - AttributeName: pod_name
           AttributeType: S
       SSESpecification:
         SSEEnabled: true
@@ -127,6 +114,7 @@ Resources:
     Properties:
       Handler: index.handler
       Runtime: python3.7
+      MemorySize: 256
       Environment:
         Variables:
           KUBECONFIG: !Ref KubeConfig
