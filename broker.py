@@ -9,6 +9,9 @@ from botocore.exceptions import ClientError
 _logger = logging.getLogger()
 _logger.setLevel(logging.DEBUG if os.getenv('APP_DEBUG', '') == 'true' else logging.INFO)
 
+if os.getenv('AWS_REGION'):
+    boto3.setup_default_session(region_name=os.getenv('AWS_REGION'))
+
 
 def _get_arn(lookup_token):
     if lookup_token is not None:

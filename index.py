@@ -1,14 +1,10 @@
-import broker
-import boto3
-import logging
 import os
+import logging
+import broker
 import webhook
 
 _logger = logging.getLogger()
 _logger.setLevel(logging.DEBUG if os.getenv('APP_DEBUG', '') == 'true' else logging.INFO)
-
-if os.getenv('AWS_REGION'):
-    boto3.setup_default_session(region_name=os.getenv('AWS_REGION'))
 
 
 def handler(event, context):

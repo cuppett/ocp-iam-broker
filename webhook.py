@@ -17,14 +17,13 @@ _EMPTY_PATCHSET = 'W10='
 _logger = logging.getLogger()
 _logger.setLevel(logging.DEBUG if os.getenv('APP_DEBUG', '') == 'true' else logging.INFO)
 
+if os.getenv('AWS_REGION'):
+    boto3.setup_default_session(region_name=os.getenv('AWS_REGION'))
 
-def _get_kubeconfig() -> None:
-    """Retrieves the required kubeconfig from SSM Parameter Store. This function must have the ability to decrypt
-    via the key. The default KMS is easy, a customer key will require extra permissions for the role."""
-    ssm_client = boto3.client('ssm')
-    kubeconfig = ssm_client.get_parameter(Name=os.getenv('KUBECONFIG', 'WEBHOOK_KUBECONFIG'), WithDecryption=True)
-    filename = create_temp_file(kubeconfig['Parameter']['Value'])
-    config.load_kube_config(config_file=str(filename))
+_ssm_client = boto3.client('ssm')
+_kubeconfig = _ssm_client.get_parameter(Name=os.getenv('KUBECONFIG', 'WEBHOOK_KUBECONFIG'), WithDecryption=True)
+__filename = create_temp_file(_kubeconfig['Parameter']['Value'])
+config.load_kube_config(config_file=str(__filename))
 
 
 def _identify_target_arn(namespace: string, service_account: string) -> string:
@@ -94,6 +93,8 @@ def _get_allowed_arns(namespace: string, service_account: string) -> []:
                               Key={'namespace': {'S': namespace}, 'service_account':  {'S': service_account}})
         if row is not None and 'Item' in row:
             return row['Item']['allowed_roles']['SS']
+        else:
+            _logger.debug('No allowed ARNs identified')
     except Exception as e:
         _logger.error('Unknown error querying table: %s', e)
 
@@ -219,7 +220,6 @@ def handler(event, context):
 
     if body['request']['kind']['kind'] == 'Pod':
         try:
-            _get_kubeconfig()
             namespace = body['request']['namespace']
             operation = body['request']['operation']
 
