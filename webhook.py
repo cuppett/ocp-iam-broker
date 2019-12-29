@@ -88,11 +88,14 @@ def _create_secret(namespace: string, auth_token: string) -> string:
 
 def _get_allowed_arns(namespace: string, service_account: string) -> []:
     """Looks up the allowed ARNs from DynamoDB. We ensure this """
-    dynamo = boto3.client('dynamodb')
-    row = dynamo.get_item(TableName=os.getenv('MAP_TABLE', 'mapped_roles'),
-                          Key={'namespace': {'S': namespace}, 'service_account':  {'S': service_account}})
-    if row is not None:
-        return row['Item']['allowed_roles']['SS']
+    try:
+        dynamo = boto3.client('dynamodb')
+        row = dynamo.get_item(TableName=os.getenv('MAP_TABLE', 'mapped_roles'),
+                              Key={'namespace': {'S': namespace}, 'service_account':  {'S': service_account}})
+        if row is not None:
+            return row['Item']['allowed_roles']['SS']
+    except Exception as e:
+        _logger.error('Unknown error querying table: %s', e)
 
     return None
 
@@ -141,7 +144,7 @@ def _get_auth_secret(namespace: string, service_account: string) -> string:
                 _insert_auth_row(auth_token, target_arn, secret_name, namespace, service_account)
                 return secret_name
             except Exception as e:
-                _logger.error("Unknown error storing dynamoDB row: %s" % e)
+                _logger.error("Unknown error storing DynamoDB row: %s" % e)
                 # Unwind and remove the Kubernetes secret
                 _delete_secret(namespace, secret_name)
 
