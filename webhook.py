@@ -92,7 +92,7 @@ def _get_allowed_arns(namespace: string, service_account: string) -> []:
         dynamo = boto3.client('dynamodb')
         row = dynamo.get_item(TableName=os.getenv('MAP_TABLE', 'mapped_roles'),
                               Key={'namespace': {'S': namespace}, 'service_account':  {'S': service_account}})
-        if row is not None:
+        if row is not None and 'Item' in row:
             return row['Item']['allowed_roles']['SS']
     except Exception as e:
         _logger.error('Unknown error querying table: %s', e)
@@ -218,17 +218,20 @@ def handler(event, context):
     patchset = _EMPTY_PATCHSET
 
     if body['request']['kind']['kind'] == 'Pod':
-        _get_kubeconfig()
-        namespace = body['request']['namespace']
-        operation = body['request']['operation']
+        try:
+            _get_kubeconfig()
+            namespace = body['request']['namespace']
+            operation = body['request']['operation']
 
-        _logger.debug('Namespace: ' + namespace + ' Operation: ' + operation)
+            _logger.debug('Namespace: ' + namespace + ' Operation: ' + operation)
 
-        if operation == 'CREATE':
-            patchset = _generate_patchset(body['request'])
-        elif operation == 'DELETE':
-            pod_name = body['request']['name']
-            _remove_auth_row(namespace, pod_name)
+            if operation == 'CREATE':
+                patchset = _generate_patchset(body['request'])
+            elif operation == 'DELETE':
+                pod_name = body['request']['name']
+                _remove_auth_row(namespace, pod_name)
+        except Exception as e:
+            _logger.error('Unhandled exception in webhook: %s', e)
 
     to_return = {
         'headers': {'Content-Type': 'application/json'},
