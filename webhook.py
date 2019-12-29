@@ -23,11 +23,11 @@ def _get_kubeconfig() -> None:
     via the key. The default KMS is easy, a customer key will require extra permissions for the role."""
     ssm_client = boto3.client('ssm')
     kubeconfig = ssm_client.get_parameter(Name=os.getenv('KUBECONFIG', 'WEBHOOK_KUBECONFIG'), WithDecryption=True)
-    filename = create_temp_file(kubeconfig)
+    filename = create_temp_file(kubeconfig['Parameter']['Value'])
     config.load_kube_config(config_file=str(filename))
 
 
-def _identify_target_arn(namespace: string, serviceaccount: string) -> string:
+def _identify_target_arn(namespace: string, service_account: string) -> string:
     """Will lookup the target ARN in Kubernetes via an annotation on the ServiceAccount.
     If none is found, or there is an error, will return None."""
 
@@ -37,16 +37,18 @@ def _identify_target_arn(namespace: string, serviceaccount: string) -> string:
     # Retrieving the annotation
     try:
         v1 = client.CoreV1Api()
-        resp = v1.read_namespaced_service_account(namespace, serviceaccount)
+
+        resp = v1.read_namespaced_service_account(service_account, namespace)
         if resp.metadata.annotations is not None and arn_annotation in resp.metadata.annotations:
             _logger.debug('Annotation found: ' + resp.metadata.annotations[arn_annotation])
             return resp.metadata.annotations[arn_annotation]
         else:
             _logger.debug('No annotation %s found for namespace %s and serviceaccount %s',
-                          arn_annotation, namespace, serviceaccount)
+                          arn_annotation, namespace, service_account)
             return None
     except ApiException as e:
-        _logger.error("Unknown error trying to fetch serviceaccount: %s" % e)
+        if (e.status != 404):
+            _logger.error("Unknown error trying to fetch service account: %s" % e)
         return None
 
 
@@ -84,11 +86,11 @@ def _create_secret(namespace: string, auth_token: string) -> string:
         return None
 
 
-def _get_allowed_arns(namespace: string, serviceaccount: string) -> []:
+def _get_allowed_arns(namespace: string, service_account: string) -> []:
     """Looks up the allowed ARNs from DynamoDB. We ensure this """
     dynamo = boto3.client('dynamodb')
     row = dynamo.get_item(TableName=os.getenv('MAP_TABLE', 'mapped_roles'),
-                          Key={'namespace': {'S': namespace}, 'service_account':  {'S': serviceaccount}})
+                          Key={'namespace': {'S': namespace}, 'service_account':  {'S': service_account}})
     if row is not None:
         return row['Item']['allowed_roles']['SS']
 
@@ -130,7 +132,7 @@ def _get_auth_secret(namespace: string, service_account: string) -> string:
 
     # Setting up Kubernetes and DynamoDB with the needed Secret & row
     if target_arn is not None and target_arn in arn_list:
-        auth_token = ''.join([random.choice(string.letters + string.digits) for n in range(64)])
+        auth_token = ''.join([random.choice(string.ascii_letters + string.digits) for n in range(64)])
         secret_name = _create_secret(namespace, auth_token)
 
         # Insert the auth row into DynamoDB
@@ -212,7 +214,7 @@ def handler(event, context):
     body = json.loads(event['body'])
     patchset = _EMPTY_PATCHSET
 
-    if body['request']['kind']['kind'] is 'Pod':
+    if body['request']['kind']['kind'] == 'Pod':
         _get_kubeconfig()
         namespace = body['request']['namespace']
         operation = body['request']['operation']
