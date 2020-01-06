@@ -1,4 +1,4 @@
-= OpenShift Broker, Proxy & Webhook -
+= OpenShift Broker, Proxy & Webhook
 :toc: macro
 :toc-title:
 
