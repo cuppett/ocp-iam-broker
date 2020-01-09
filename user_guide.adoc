@@ -73,9 +73,9 @@ We create a simple container in the default project for this.
 
 ===== Create ImageStream for Container
 ----
-$ oc create is ocp-broker-proxy
+$ oc create is ocp-broker-proxy -n ocp-iam-broker
 imagestream.image.openshift.io/ocp-broker-proxy created
-$ oc set image-lookup ocp-broker-proxy
+$ oc set image-lookup ocp-broker-proxy -n ocp-iam-broker
 imagestream.image.openshift.io/ocp-broker-proxy image lookup updated
 ----
 
