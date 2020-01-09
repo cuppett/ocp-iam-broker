@@ -11,8 +11,8 @@ What's Here
 This sample includes:
 
 * README.md - this file
-* [User Guide.pdf][3] - Walks through installation, validation and usage of the OCP IAM Broker & Webhook
-  * The [user guide](./user_guide.adoc) can also be found in Asciidoc format
+* [User Guide](./user_guide.adoc) - Walks through installation, validation and usage of the OCP IAM Broker & Webhook
+  * The  can also be found in Asciidoc format
 * assets/broker-webhook/cloudformation/deployment.yml - CloudFormation facilitating the AWS portion of deployment
 * assets/proxy/* - Dockerfile and S2I artifacts for building proxy images for use on OCP
 
@@ -23,4 +23,3 @@ Please review the User Guide.
 
 [1]: https://github.com/uswitch/kiam
 [2]: https://github.com/aws/amazon-eks-pod-identity-webhook
-[3]: User%20Guide.pdf
