@@ -63,7 +63,7 @@ This webhook will:
 
 == Installation
 
-=== IAM Broker & Webhook
+=== IAM Broker
 
 The broker is the piece which sits as a lambda utilizing its AWS temporary credential. When calling the webhook portion, it will configure incoming pods with a sidecar to callback for their temporary credentials. When the broker is called, it will validate the auth token to sts:AssumeRole to the desired role and serve it to the pod proxy.
 
