@@ -19,7 +19,7 @@ This sample includes:
 What Do I Do Next?
 ------------------
 
-Please review the User Guide.
+Please review the [User Guide](./user_guide.adoc).
 
 [1]: https://github.com/uswitch/kiam
 [2]: https://github.com/aws/amazon-eks-pod-identity-webhook
