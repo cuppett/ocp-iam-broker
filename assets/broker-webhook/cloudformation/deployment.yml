@@ -109,6 +109,18 @@ Resources:
           AttributeType: S
       SSESpecification:
         SSEEnabled: true
+      TimeToLiveSpecification:
+        AttributeName: expires
+        Enabled: true
+      StreamSpecification:
+        StreamViewType: OLD_IMAGE
+  DeletedRecordSource:
+    Type: AWS::Lambda::EventSourceMapping
+    Properties:
+      Enabled: true
+      EventSourceArn: !GetAtt Authorizations.StreamArn
+      FunctionName: !GetAtt OcpBrokerWebhook.Arn
+      StartingPosition: TRIM_HORIZON
   OcpBrokerWebhook:
     Type: 'AWS::Serverless::Function'
     Properties:
@@ -186,20 +198,41 @@ Resources:
                 Action:
                   - 'ssm:GetParameter'
                 Resource: !Sub 'arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${KubeConfig}'
-        - PolicyName: UseDynamoDbTables
+        - PolicyName: ReadAllowancesTable
           PolicyDocument:
             Version: 2012-10-17
             Statement:
               - Effect: Allow
                 Action:
-                  - 'dynamodb:PutItem'
-                  - 'dynamodb:GetItem'
-                  - 'dynamodb:DeleteItem'
                   - 'dynamodb:DescribeTable'
+                  - 'dynamodb:GetItem'
                   - 'dynamodb:Query'
-                  - 'dynamodb:UpdateTable'
                 Resource:
                   - !GetAtt Allowances.Arn
+        - PolicyName: UseAuthorizationTable
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                  - 'dynamodb:DescribeTable'
+                  - 'dynamodb:GetItem'
+                  - 'dynamodb:ListStreams'
+                  - 'dynamodb:PutItem'
+                  - 'dynamodb:Query'
+                  - 'dynamodb:UpdateItem'
+                Resource:
                   - !GetAtt Authorizations.Arn
+        - PolicyName: UseDynamoDbAuthorizationStream
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                  - 'dynamodb:DescribeStream'
+                  - 'dynamodb:GetRecords'
+                  - 'dynamodb:GetShardIterator'
+                Resource:
+                  - !GetAtt Authorizations.StreamArn
       ManagedPolicyArns:
         - !Sub arn:${AWS::Partition}:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole

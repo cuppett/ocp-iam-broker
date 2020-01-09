@@ -46,7 +46,7 @@ The webhook is responsible for identifying of pods created those permitted to AW
 
 This webhook will:
 
-. Watch for Pod CREATE/DELETE
+. Watch for Pod CREATE
 . On CREATE:
   .. Identify if the Pod is in a project and service account we know a role can attached to (query to DynamoDB)
   .. Query the OpenShift API server for the desired role on the serviceaccount annotation “eks.amazonaws.com/role-arn”
@@ -57,9 +57,6 @@ This webhook will:
     ... Add environment variables to each container:
       .... AWS_CONTAINER_CREDENTIALS_FULL_URI set to the endpoint of localhost for proxy
       .... AWS_CONTAINER_AUTHORIZATION_TOKEN set to the secret from above
-. On DELETE:
-  .. Identify if the Pod previously was given an authorization token
-  .. Clean it up if so
 
 == Installation
 
@@ -214,7 +211,7 @@ webhooks:
     clientConfig:
       url: https://RESTAPI.execute-api.REGION.amazonaws.com/Prod
     rules:
-      - operations: [ "CREATE", "DELETE" ]
+      - operations: [ "CREATE" ]
         apiGroups: [""]
         apiVersions: ["v1"]
         resources: ["pods"]

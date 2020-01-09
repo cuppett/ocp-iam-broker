@@ -23,17 +23,28 @@ def handler(event, context):
     _logger.debug(event)
     to_return = None
 
-    if event['httpMethod'] == 'GET':
-        to_return = broker.handler(event, context)
-    elif event['httpMethod'] == 'POST':
-        to_return = webhook.handler(event, context)
+    # Processing the API Gateway forwarded requests.
+    if 'httpMethod' in event:
+        if event['httpMethod'] == 'GET':
+            to_return = broker.handler(event, context)
+        elif event['httpMethod'] == 'POST':
+            to_return = webhook.handler(event, context)
 
-    if to_return is None:
-        to_return = {
-            'headers': {'Content-Type': 'application/json'},
-            'statusCode': 503,
-            'body': {'data': {'output': 'Invalid invocation'}}
-        }
+        if to_return is None:
+            to_return = {
+                'headers': {'Content-Type': 'application/json'},
+                'statusCode': 503,
+                'body': {'data': {'output': 'Invalid invocation'}}
+            }
+
+    # Processing DynamoDB record removals
+    elif 'Records' in event:
+        for record in event['Records']:
+            if record['eventName'] == 'REMOVE':
+                webhook.remove_secret(
+                    record['dynamodb']['OldImage']['namespace']['S'],
+                    record['dynamodb']['OldImage']['secret_name']['S']
+                )
 
     return to_return
 

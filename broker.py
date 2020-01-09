@@ -13,6 +13,7 @@ import boto3
 import datetime
 import json
 import logging
+import math
 import os
 
 from botocore.exceptions import ClientError
@@ -30,7 +31,31 @@ def _get_arn(lookup_token):
         row = client.get_item(TableName=os.getenv('AUTH_TABLE', 'role_perms'),
                               Key={'auth_token': {'S': lookup_token}})
         if row is not None:
+            # Resetting/refreshing the last_accessed/expires TTLs
+            try:
+                now = datetime.datetime.now()
+                expires_days_in_seconds = os.getenv('EXPIRES_IN_DAYS', 14) * 86400
+                expires_ts = now + datetime.timedelta(seconds=expires_days_in_seconds)
+                expires_ttl = math.floor(expires_ts.timestamp())
+                last_accessed = math.floor(now.timestamp())
+
+                client.update_item(
+                    TableName=os.getenv('AUTH_TABLE', 'role_perms'),
+                    Key={
+                        'auth_token': { 'S': lookup_token }
+                    },
+                    UpdateExpression="set expires = :e, last_accessed=:l",
+                    ExpressionAttributeValues={
+                        ':e': { 'N': str(expires_ttl) },
+                        ':l': { 'N': str(last_accessed) }
+                    },
+                    ReturnValues='NONE'
+                )
+            except Exception as e:
+                _logger.error("Unexpected error: %s" % e)
+
             return row['Item']['role_arn']['S']
+
         else:
             return None
     else:

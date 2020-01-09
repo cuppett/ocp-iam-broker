@@ -12,9 +12,11 @@
 import base64
 import boto3
 import copy
+import datetime
 import json
 import jsonpatch
 import logging
+import math
 import os
 import random
 import string
@@ -121,6 +123,11 @@ def _get_allowed_arns(namespace: string, service_account: string) -> []:
 def _insert_auth_row(auth_token: string, role_arn: string, secret_name: string, namespace: string,
                      service_account: string) -> None:
     dynamo = boto3.client('dynamodb')
+
+    expires_days_in_seconds = os.getenv('EXPIRES_IN_DAYS', 14) * 86400
+    expires_ts = datetime.datetime.now() + datetime.timedelta(seconds=expires_days_in_seconds)
+    expires_ttl = math.floor(expires_ts.timestamp())
+
     item = {
         'auth_token': {
             'S': auth_token
@@ -136,8 +143,12 @@ def _insert_auth_row(auth_token: string, role_arn: string, secret_name: string, 
         },
         'service_account': {
             'S': service_account
+        },
+        'expires': {
+            'N': str(expires_ttl)
         }
     }
+
     dynamo.put_item(TableName=os.getenv('AUTH_TABLE', 'role_perms'), Item=item)
 
 
@@ -169,9 +180,14 @@ def _get_auth_secret(namespace: string, service_account: string) -> string:
     return None
 
 
-def _remove_auth_row(namespace: string, pod_name: string) -> None:
-    """TODO: Need a way to identify this row, pod_name is not guaranteed to exist when using generated name."""
-    pass
+def remove_secret(namespace: string, secret_name: string) -> None:
+    _get_kube_config()
+    try:
+        v1 = client.CoreV1Api()
+        resp = v1.delete_namespaced_secret(secret_name, namespace)
+        _logger.debug('Result of the call: %s', resp)
+    except ApiException as e:
+        _logger.error("Unknown error deleting secret: %s" % e)
 
 
 def _update_pod_spec(original: [], secret_name: string) -> []:
@@ -245,9 +261,7 @@ def handler(event, context):
 
             if operation == 'CREATE':
                 patchset = _generate_patchset(body['request'])
-            elif operation == 'DELETE':
-                pod_name = body['request']['name']
-                _remove_auth_row(namespace, pod_name)
+
         except Exception as e:
             _logger.error('Unhandled exception in webhook: %s', e)
 
