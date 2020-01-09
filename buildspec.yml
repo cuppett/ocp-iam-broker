@@ -11,10 +11,6 @@ phases:
       # Upgrade AWS CLI to the latest version
       - pip install --upgrade awscli
 
-      # Removing ancillary content
-      - rm -fR assets/
-      - rm -fR examples/
-
   pre_build:
     commands:
 
@@ -29,6 +25,10 @@ phases:
 
       # Removing ancillary content
       - rm -fR tests/
+      - rm -fR assets/
+      - rm -fR examples/
+      - rm -fR media/
+      - rm -fR *.adoc
 
       # Do not remove this statement. This command is required for AWS CodeStar projects.
       # Update the AWS Partition, AWS Region, account ID and project ID in the project ARN on template-configuration.json file so AWS CloudFormation can tag project resources.
