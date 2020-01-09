@@ -63,61 +63,6 @@ This webhook will:
 
 == Installation
 
-=== Sidecar Proxy
-
-To leverage the credential broker (running outside your pod), we need a proxy from within the pod (localhost). Detailed below is an effective way to get a sidecar container built inside your cluster honoring the environment variables and secrets we create. The method below sets the cluster up to not only work within this mechanism, it can actively track support/maintenance from Red Hat.
-
-==== Proxy Sidecar Build
-
-We create a simple container in the default project for this.
-
-===== Create ImageStream for Container
-----
-$ oc create is ocp-broker-proxy -n ocp-iam-broker
-imagestream.image.openshift.io/ocp-broker-proxy created
-$ oc set image-lookup ocp-broker-proxy -n ocp-iam-broker
-imagestream.image.openshift.io/ocp-broker-proxy image lookup updated
-----
-
-===== Create BuildConfig for ocp-broker-proxy
-
-This proxy makes use of a small and simple nginx.conf identifying the custom endpoint for your credential broker as well as sending an authentication token to the broker (via a Secret). By default,  this shared image will be built & deployed any time a change to the Red Hat ImageStream is detected. To avoid redeploys to your app containers, you can identify the image (not ImageStream) in the broker’s webhook configuration later on.
-
-.build_config.yaml
-----
-kind: BuildConfig
-apiVersion: build.openshift.io/v1
-metadata:
- name: ocp-broker-proxy
- namespace: ocp-iam-broker
-spec:
- triggers:
-   - type: ImageChange
-     imageChange: {}
-   - type: ConfigChange
- runPolicy: Serial
- source:
-   type: Git
-   git:
-     uri: 'https://github.com/cuppett/ocp-iam-broker.git'
-     ref: master
-   contextDir: assets/proxy
- strategy:
-   type: Source
-   sourceStrategy:
-     from:
-       kind: ImageStreamTag
-       namespace: openshift
-       name: 'nginx:latest'
-     env:
-       - name: OCP_BROKER_LOC
-         value: 'https://YOURAPI.execute-api.REGION.amazonaws.com/Prod'
- output:
-   to:
-     kind: ImageStreamTag
-     name: 'ocp-broker-proxy:latest'
-----
-
 === IAM Broker & Webhook
 
 The broker is the piece which sits as a lambda utilizing its AWS temporary credential. When calling the webhook portion, it will configure incoming pods with a sidecar to callback for their temporary credentials. When the broker is called, it will validate the auth token to sts:AssumeRole to the desired role and serve it to the pod proxy.
@@ -200,6 +145,61 @@ image:media/create-stack.png[]
 Once the stack has completed creation, you are able to inspect all the resources created and ensure successful completion. You will need the ServerlessRestApi to register the mutating webhook:
 
 image:media/ocp-iam-broker-resources.png[]
+
+=== Sidecar Proxy
+
+To leverage the credential broker (running outside your pod), we need a proxy from within the pod (localhost). Detailed below is an effective way to get a sidecar container built inside your cluster honoring the environment variables and secrets we create. The method below sets the cluster up to not only work within this mechanism, it can actively track support/maintenance from Red Hat.
+
+==== Proxy Sidecar Build
+
+We create a simple container in the default project for this.
+
+===== Create ImageStream for Container
+----
+$ oc create is ocp-broker-proxy -n ocp-iam-broker
+imagestream.image.openshift.io/ocp-broker-proxy created
+$ oc set image-lookup ocp-broker-proxy -n ocp-iam-broker
+imagestream.image.openshift.io/ocp-broker-proxy image lookup updated
+----
+
+===== Create BuildConfig for ocp-broker-proxy
+
+This proxy makes use of a small and simple nginx.conf identifying the custom endpoint for your credential broker as well as sending an authentication token to the broker (via a Secret). By default,  this shared image will be built & deployed any time a change to the Red Hat ImageStream is detected. To avoid redeploys to your app containers, you can identify the image (not ImageStream) in the broker’s webhook configuration later on.
+
+.build_config.yaml
+----
+kind: BuildConfig
+apiVersion: build.openshift.io/v1
+metadata:
+ name: ocp-broker-proxy
+ namespace: ocp-iam-broker
+spec:
+ triggers:
+   - type: ImageChange
+     imageChange: {}
+   - type: ConfigChange
+ runPolicy: Serial
+ source:
+   type: Git
+   git:
+     uri: 'https://github.com/cuppett/ocp-iam-broker.git'
+     ref: master
+   contextDir: assets/proxy
+ strategy:
+   type: Source
+   sourceStrategy:
+     from:
+       kind: ImageStreamTag
+       namespace: openshift
+       name: 'nginx:latest'
+     env:
+       - name: OCP_BROKER_LOC
+         value: 'https://YOURAPI.execute-api.REGION.amazonaws.com/Prod'
+ output:
+   to:
+     kind: ImageStreamTag
+     name: 'ocp-broker-proxy:latest'
+----
 
 ==== Register Mutating Webhook
 
