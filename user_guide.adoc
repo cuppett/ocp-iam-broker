@@ -110,9 +110,13 @@ $ oc sa create-kubeconfig broker > broker.kubeconfig
 ==== Create Secure Parameter in Systems Manager
 
 We need to first create a login profile if we are in a lab environment or we do not have one.
+
 If you have aws console access already you can skip these steps and proced to the aws console and following steps.
+
 Note that the AWSUSER variable is the one used in AWS (EMAIL-GUID as setup by the OpenTLC lab or usually just EMAIL if not)
+
 In this case (as an example) we set the console password to GUID-GUID for a LAB environment but you can set to whatever.
+
 ----
 export AWSUSER="${EMAIL}-${GUID}"
 export AWSPASS="${GUID}-${GUID}"
@@ -121,6 +125,7 @@ export AWSUID=$(aws iam get-user --query 'User.Arn'|awk -F\: '{print $5}')
 ----
 
 You can use the following commands to get the url and credentials to sign in to AWS console:
+
 ----
 echo "https://${AWSUID}.signin.aws.amazon.com/console/"
 echo -e "\n$(aws iam get-user --query 'User.Arn'|awk -F\: -v USER=${AWSUSER} -v PASS=${AWSPASS} '{print "UserID:", $5 "\nUserName:", USER, "\nPassword:", PASS "\n"}')"
@@ -134,9 +139,19 @@ image:media/create-secure-parameter-in-systems-manager.png[]
 
 ==== Deploy Broker & Webhook via CloudFormation
 
-The broker and webhook are bundled in a lambda function. It can all be registered and configured via CloudFormation.
+We will need to create a uniquely named S3 bucket (something like ocp-iam-broker-s3-bucket-[GUID]) leaving all values default
 
-Creates:
+Download the latest release files from https://github.com/cuppett/ocp-iam-broker/releases for testing
+
+The files you need are v0.2-alpha.zip (or whatever the latest release is) and deployment.yaml
+
+After downloading these files you will need to add them to the newly created bucket using the upload feature in AWS console.
+
+When creating the stack use S3 URL and pass the URL of the deployment.yaml file as seen in the S3 bucket overview page for that file.
+
+The broker and webhook are bundled in a lambda function. It can all be registered and configured via CloudFormation using the deployment.yaml file.
+
+The deployment creates:
 
 . DynamoDB table registries (for auth token storage from pods - not the AWS creds)
 . Lambda function (webhook and sts broker) with IAM role
@@ -155,6 +170,8 @@ Create a new stack using that template, and fill in the following input paramete
 * Input: Network configuration for the cluster
 
 image:media/create-stack.png[]
+
+Note that the values for S3 Bucket and S3 key are the name (not url) of your new bucket and the name of the release zip file you uploaded to the bucket.
 
 ===== Stack Resources
 
