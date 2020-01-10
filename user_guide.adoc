@@ -266,6 +266,23 @@ Given there are three, discrete pieces to this solution, it’s important they a
 
 === Example: Validate Broker Only
 
+You can use Postman app to validate
+
+You need to creat an S3 Reader role in IAM using your own AWSUID
+
+. IAM -> Roles -> Create Role -> Another AWS Account
+..  Enter AWSUID
+..  Select AmazonS3ReadOnlyAccess
+..  Name it ocp-iam-broker-allow-s3-GUID (or similarly unique name)
+
+Now make note of or copy the role arn for use later in DynamoDB entry
+
+You need to also create the project "app1"
+
+----
+oc new-project app1 --description "Create a project that contains the pod we use to test/validate the broker" --display-name "App1"
+----
+
 You can validate the broker scenario by creating an authorization row in DynamoDB and running a sample REST call with the Authorization header, ensuring you get a valid credential back.
 
 Sample row in Authorizations table:
