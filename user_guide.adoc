@@ -157,6 +157,15 @@ The deployment creates:
 . Lambda function (webhook and sts broker) with IAM role
 . API Gateway to invoke webhook and broker from the cluster
 
+===== Create ImageStream for Container
+
+----
+$ oc create is ocp-broker-proxy -n ocp-iam-broker
+imagestream.image.openshift.io/ocp-broker-proxy created
+$ oc set image-lookup ocp-broker-proxy -n ocp-iam-broker
+imagestream.image.openshift.io/ocp-broker-proxy image lookup updated
+----
+
 ===== Create Stack
 
 The CloudFormation template for the Broker & Webhook can be found at  assets/broker-webhook/cloudformation/deployment.yml.
@@ -186,14 +195,6 @@ To leverage the credential broker (running outside your pod), we need a proxy fr
 ==== Proxy Sidecar Build
 
 We create a simple container in the default project for this.
-
-===== Create ImageStream for Container
-----
-$ oc create is ocp-broker-proxy -n ocp-iam-broker
-imagestream.image.openshift.io/ocp-broker-proxy created
-$ oc set image-lookup ocp-broker-proxy -n ocp-iam-broker
-imagestream.image.openshift.io/ocp-broker-proxy image lookup updated
-----
 
 ===== Create BuildConfig for ocp-broker-proxy
 
