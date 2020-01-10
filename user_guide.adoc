@@ -109,6 +109,25 @@ $ oc sa create-kubeconfig broker > broker.kubeconfig
 
 ==== Create Secure Parameter in Systems Manager
 
+We need to first create a login profile if we are in a lab environment or we do not have one.
+If you have aws console access already you can skip these steps and proced to the aws console and following steps.
+Note that the AWSUSER variable is the one used in AWS (EMAIL-GUID as setup by the OpenTLC lab or usually just EMAIL if not)
+In this case (as an example) we set the console password to GUID-GUID for a LAB environment but you can set to whatever.
+----
+export AWSUSER="${EMAIL}-${GUID}"
+export AWSPASS="${GUID}-${GUID}"
+aws iam create-login-profile --user-name "${AWSUSER}" --password "${AWSPASS}" --no-password-reset-required
+export AWSUID=$(aws iam get-user --query 'User.Arn'|awk -F\: '{print $5}')
+----
+
+You can use the following commands to get the url and credentials to sign in to AWS console:
+----
+echo "https://${AWSUID}.signin.aws.amazon.com/console/"
+echo -e "\n$(aws iam get-user --query 'User.Arn'|awk -F\: -v USER=${AWSUSER} -v PASS=${AWSPASS} '{print "UserID:", $5 "\nUserName:", USER, "\nPassword:", PASS "\n"}')"
+----
+
+Now log on to aws console and proceed to the AWS Systems Manager and create a new parameter.
+
 Copy/paste the generated broker.kubeconfig contents into a SSM SecureString parameter. You may use any KMS key (or the default one) you prefer for your account.
 
 image:media/create-secure-parameter-in-systems-manager.png[]
