@@ -109,19 +109,42 @@ $ oc sa create-kubeconfig broker > broker.kubeconfig
 
 ==== Create Secure Parameter in Systems Manager
 
+Now log on to aws console and create new parameter in Systems Manager.
+. AWS Systems Manager
+.. Parameter Store 
+
 Copy/paste the generated broker.kubeconfig contents into a SSM SecureString parameter. You may use any KMS key (or the default one) you prefer for your account.
 
 image:media/create-secure-parameter-in-systems-manager.png[]
 
 ==== Deploy Broker & Webhook via CloudFormation
 
-The broker and webhook are bundled in a lambda function. It can all be registered and configured via CloudFormation.
+We will need to create a uniquely named S3 bucket (something like ocp-iam-broker-s3-bucket-[GUID]) leaving all values default
 
-Creates:
+Download the latest release files from https://github.com/cuppett/ocp-iam-broker/releases for testing
+
+The files you need are v0.2-alpha.zip (or whatever the latest release is) and deployment.yaml
+
+After downloading these files you will need to add them to the newly created bucket using the upload feature in AWS console.
+
+When creating the stack use S3 URL and pass the URL of the deployment.yaml file as seen in the S3 bucket overview page for that file.
+
+The broker and webhook are bundled in a lambda function. It can all be registered and configured via CloudFormation using the deployment.yaml file.
+
+The deployment creates:
 
 . DynamoDB table registries (for auth token storage from pods - not the AWS creds)
 . Lambda function (webhook and sts broker) with IAM role
 . API Gateway to invoke webhook and broker from the cluster
+
+===== Create ImageStream for Container
+
+----
+$ oc create is ocp-broker-proxy -n ocp-iam-broker
+imagestream.image.openshift.io/ocp-broker-proxy created
+$ oc set image-lookup ocp-broker-proxy -n ocp-iam-broker
+imagestream.image.openshift.io/ocp-broker-proxy image lookup updated
+----
 
 ===== Create Stack
 
@@ -137,6 +160,8 @@ Create a new stack using that template, and fill in the following input paramete
 
 image:media/create-stack.png[]
 
+Note that the values for S3 Bucket and S3 key are the name (not url) of your new bucket and the name of the release zip file you uploaded to the bucket.
+
 ===== Stack Resources
 
 Once the stack has completed creation, you are able to inspect all the resources created and ensure successful completion. You will need the ServerlessRestApi to register the mutating webhook:
@@ -150,14 +175,6 @@ To leverage the credential broker (running outside your pod), we need a proxy fr
 ==== Proxy Sidecar Build
 
 We create a simple container in the default project for this.
-
-===== Create ImageStream for Container
-----
-$ oc create is ocp-broker-proxy -n ocp-iam-broker
-imagestream.image.openshift.io/ocp-broker-proxy created
-$ oc set image-lookup ocp-broker-proxy -n ocp-iam-broker
-imagestream.image.openshift.io/ocp-broker-proxy image lookup updated
-----
 
 ===== Create BuildConfig for ocp-broker-proxy
 
@@ -228,6 +245,23 @@ mutatingwebhookconfiguration.admissionregistration.k8s.io/ocp-iam-webhook create
 Given there are three, discrete pieces to this solution, it’s important they are all functional. Below are various setups which can be used to verify different parts.
 
 === Example: Validate Broker Only
+
+You can use Postman app to validate
+
+You need to creat an S3 Reader role in IAM using your own AWSUID
+
+. IAM -> Roles -> Create Role -> Another AWS Account
+..  Enter AWSUID
+..  Select AmazonS3ReadOnlyAccess
+..  Name it ocp-iam-broker-allow-s3-GUID (or similarly unique name)
+
+Now make note of or copy the role arn for use later in DynamoDB entry
+
+You need to also create the project "app1"
+
+----
+oc new-project app1 --description "Create a project that contains the pod we use to test/validate the broker" --display-name "App1"
+----
 
 You can validate the broker scenario by creating an authorization row in DynamoDB and running a sample REST call with the Authorization header, ensuring you get a valid credential back.
 
