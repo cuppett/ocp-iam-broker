@@ -15,15 +15,16 @@ import copy
 import datetime
 import json
 import jsonpatch
+import kubernetes
 import logging
 import math
 import os
 import random
 import string
+import yaml
 
 from kubernetes import client, config
 from kubernetes.client.rest import ApiException
-from kubernetes.config.kube_config import _create_temp_file_with_content as create_temp_file
 
 _EMPTY_PATCHSET = 'W10='
 
@@ -39,9 +40,11 @@ def _get_kube_config() -> None:
     if not kube_init:
         ssm_client = boto3.client('ssm')
         kubeconfig = ssm_client.get_parameter(Name=os.getenv('KUBECONFIG', 'WEBHOOK_KUBECONFIG'), WithDecryption=True)
-        filename = create_temp_file(kubeconfig['Parameter']['Value'])
-        config.load_kube_config(config_file=str(filename))
-        os.remove(filename)
+        config_dict = yaml.safe_load(kubeconfig['Parameter']['Value'])
+        loader = kubernetes.config.kube_config.KubeConfigLoader(config_dict)
+        config_object = kubernetes.client.Configuration()
+        loader.load_and_set(config_object)
+        kubernetes.client.Configuration.set_default(config_object)
     kube_init = True
 
 
